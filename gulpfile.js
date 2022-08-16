@@ -1,9 +1,9 @@
 var gulp = require("gulp");
-var del = require("del");
 var fileinclude = require("gulp-file-include");
 var scss = require("gulp-sass")(require("sass"));
 var clean = require("gulp-clean");
 var browserSync = require("browser-sync").create();
+var sourcemaps = require("gulp-sourcemaps");
 
 var paths = {
   dev: {
@@ -11,14 +11,19 @@ var paths = {
     css: "./src/scss/*.scss",
     js: "./src/js/*.js",
     html: ["./src/**/*.html", "!./src/include/*.html"],
-    imgs: "./src/images/*",
+    resource: [
+      "./src/**/*",
+      "!./src/**/*.js",
+      "!./src/**/*.scss",
+      "!./src/**/*.html",
+    ],
   },
   dist: {
     src: "./dist",
     css: "./dist/css",
     js: "./dist/js",
     html: "./dist",
-    imgs: "./dist/images",
+    resource: "./dist",
   },
 };
 
@@ -51,16 +56,18 @@ function setJs() {
 function setCss() {
   return gulp
     .src(paths.dev.css)
+    .pipe(sourcemaps.init())
     .pipe(scss(scssOptions).on("error", scss.logError))
-    .pipe(gulp.src("./src/css/*.css"), { passthrough: true })
+    .pipe(sourcemaps.write())
+    .pipe(gulp.src("./src/scss/*.css"), { passthrough: true })
     .pipe(gulp.dest(paths.dist.css))
     .pipe(browserSync.reload({ stream: true }));
 }
 
-function setImgs() {
+function setResource() {
   return gulp
-    .src(paths.dev.imgs)
-    .pipe(gulp.dest(paths.dist.imgs))
+    .src(paths.dev.resource)
+    .pipe(gulp.dest(paths.dist.resource))
     .pipe(browserSync.reload({ stream: true }));
 }
 
@@ -68,13 +75,14 @@ function watchFiles() {
   gulp.watch(paths.dev.css, setCss);
   gulp.watch(paths.dev.js, setJs);
   gulp.watch(paths.dev.html, setHtml);
-  gulp.watch(paths.dev.imgs, setImgs);
+  gulp.watch(paths.dev.resource, setResource);
 }
 function brwSync() {
   return browserSync.init({
     server: {
       baseDir: paths.dist.src,
     },
+    port: 8000,
   });
 }
 function setClean() {
@@ -85,7 +93,7 @@ gulp.task(
   "default",
   gulp.parallel(
     brwSync,
-    gulp.series(setClean, setHtml, setCss, setJs, setImgs),
+    gulp.series(setClean, setHtml, setCss, setJs, setResource),
     watchFiles
   )
 );
